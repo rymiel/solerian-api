@@ -13,29 +13,33 @@ Kemal::Session.config.secure = true
 Kemal.config.env = ENV["SOLHTTP_ENV"]
 Kemal.config.powered_by_header = false
 Kemal.config.logger = Solerian::LogHandler.new
-error 404 {}
-error 500 {}
+Kemal.config.add_handler Solerian::CorsHandler.new, 0
+error 404 { }
+error 500 { }
 
 module Solerian
   VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
   Log     = ::Log.for self
 
-  def self.cors(ctx : HTTP::Server::Context) : Nil
-    ctx.response.headers["Access-Control-Allow-Origin"] = ENV["CORS_ORIGIN"]
-    ctx.response.headers["Access-Control-Allow-Headers"] = "Authorization, X-Solerian-Client"
-    ctx.response.headers["Access-Control-Allow-Credentials"] = "true"
-    ctx.response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+  class CorsHandler
+    include HTTP::Handler
+
+    def call(context : HTTP::Server::Context)
+      context.response.headers["Access-Control-Allow-Origin"] = ENV["CORS_ORIGIN"]
+      context.response.headers["Access-Control-Allow-Headers"] = "Authorization, X-Solerian-Client"
+      context.response.headers["Access-Control-Allow-Credentials"] = "true"
+      context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+      call_next context
+    end
   end
 
   post "/api/v0/login" do |ctx|
-    cors ctx
     username = ctx.params.body["username"]?
     secret = ctx.params.body["secret"]?
     next Auth.check_login ctx, username, secret
   end
 
   post "/api/v0/logout" do |ctx|
-    cors ctx
     next unless Auth.assert_auth ctx
     ctx.session.destroy
     ctx.response.content_type = "application/json"
@@ -44,11 +48,10 @@ module Solerian
   end
 
   get "/api/v0/me" do |ctx|
-    cors ctx
     name = Auth.username(ctx)
     ctx.response.content_type = "application/json"
     if name
-      { name: name }.to_json
+      {name: name}.to_json
     else
       ctx.session.destroy
       "null"
@@ -56,7 +59,6 @@ module Solerian
   end
 
   get "/api/v0/version" do |ctx|
-    cors ctx
     VERSION
   end
 
@@ -67,7 +69,6 @@ module Solerian
   # end
 
   get "/api/v0/new" do |ctx|
-    cors ctx
     # ctx.response.content_type = "application/json"
     # DB.copy ctx.response.output
     send_file ctx, DB::STORAGE.to_s, "application/json"
@@ -76,7 +77,6 @@ module Solerian
   end
 
   post "/api/v0/section" do |ctx|
-    cors ctx
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
     to_id = ctx.params.body["to"]?
@@ -109,7 +109,6 @@ module Solerian
   end
 
   post "/api/v0/meaning" do |ctx|
-    cors ctx
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
     to_id = ctx.params.body["to"]?
@@ -140,7 +139,6 @@ module Solerian
   end
 
   post "/api/v0/entry" do |ctx|
-    cors ctx
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
     as_id = ctx.params.body["as"]?
@@ -180,7 +178,6 @@ module Solerian
   end
 
   post "/api/v0/validate" do |ctx|
-    cors ctx
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
 
@@ -207,7 +204,8 @@ module Solerian
   end
 
   options "/*" do |ctx|
-    cors ctx
+    ctx.response.status_code = 200
+    nil
   end
 end
 
