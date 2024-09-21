@@ -1,0 +1,10 @@
+old/
+lib/
+sess/
+bin/
+
+data.db
+*.db.json
+
+.env.yaml
+dev.env.yaml

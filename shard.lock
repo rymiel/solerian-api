@@ -1,0 +1,30 @@
+version: 2.0
+shards:
+  backtracer:
+    git: https://github.com/sija/backtracer.cr.git
+    version: 1.2.2
+
+  envy:
+    git: https://github.com/grottopress/envy.git
+    version: 1.0.4
+
+  exception_page:
+    git: https://github.com/crystal-loot/exception_page.git
+    version: 0.4.1
+
+  kemal:
+    git: https://github.com/kemalcr/kemal.git
+    version: 1.5.0
+
+  kemal-session:
+    git: https://github.com/kemalcr/kemal-session.git
+    version: 1.0.0
+
+  nanoid:
+    git: https://github.com/mamantoha/nanoid.cr.git
+    version: 0.7.1
+
+  radix:
+    git: https://github.com/luislavena/radix.git
+    version: 0.4.1
+

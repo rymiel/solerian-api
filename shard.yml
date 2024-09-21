@@ -1,0 +1,23 @@
+name: solerian-api
+version: 0.1.0
+
+authors:
+  - Emilia Kond <emilia@rymiel.space>
+
+targets:
+  solerian:
+    main: src/solerian.cr
+
+dependencies:
+  nanoid:
+    github: mamantoha/nanoid.cr
+  envy:
+    github: GrottoPress/envy
+  kemal:
+    github: kemalcr/kemal
+  kemal-session:
+    github: kemalcr/kemal-session
+
+crystal: 0.36.0
+
+license: MIT
