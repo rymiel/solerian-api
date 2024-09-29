@@ -71,6 +71,16 @@ module Solerian
   get "/api/v0/new" do |ctx|
     # ctx.response.content_type = "application/json"
     # DB.copy ctx.response.output
+
+    if etag = DB.etag
+      ctx.response.headers["ETag"] = etag
+      if ctx.request.headers["If-None-Match"]? == etag
+        ctx.response.status = HTTP::Status::NOT_MODIFIED
+        ctx.response.close
+        next
+      end
+    end
+
     send_file ctx, DB::STORAGE.to_s, "application/json"
     ctx.response.close
     nil
@@ -217,7 +227,9 @@ Log.setup do |c|
   c.bind "granite", :info, backend
 end
 
-unless Solerian::DB.has_db?
+if Solerian::DB.has_db?
+  Solerian::DB.head!
+else
   # Solerian::DB.migrate
   raise "No db"
 end

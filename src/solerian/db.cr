@@ -5,6 +5,8 @@ require "json"
 module Solerian::DB
   Log = ::Log.for self
 
+  class_property etag : String? = nil
+
   abstract class Base
     macro inherited
       include JSON::Serializable
@@ -76,6 +78,7 @@ module Solerian::DB
 
   def self.save(all : Storage)
     File.open(STORAGE, "w") do |f|
+      DB.etag = f.info.modification_time
       all.to_json f
     end
   end
@@ -94,6 +97,16 @@ module Solerian::DB
 
   def self.has_db? : Bool
     File.exists? STORAGE
+  end
+
+  def self.head! : Nil
+    File.open(STORAGE, "r") do |f|
+      DB.etag = f.info.modification_time
+    end
+  end
+
+  def self.etag=(time : Time) : Nil
+    @@etag = "sld-" + time.to_s("%Y-%-m-%-d-%H-%M-%S-%L") + "/#{Solerian::VERSION}"
   end
 
   # def self.migrate
@@ -140,4 +153,3 @@ module Solerian::DB
   #   self.save(Storage.new(words: words, meanings: meanings, sections: sections))
   # end
 end
-
