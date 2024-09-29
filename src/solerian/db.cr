@@ -78,7 +78,7 @@ module Solerian::DB
 
   def self.save(all : Storage)
     File.open(STORAGE, "w") do |f|
-      DB.etag = f.info.modification_time
+      DB.etag = Time.utc
       all.to_json f
     end
   end
