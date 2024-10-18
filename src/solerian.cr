@@ -118,6 +118,25 @@ module Solerian
     "{}"
   end
 
+  delete "/api/v0/section/:id" do |ctx|
+    next unless Auth.assert_auth ctx
+    ctx.response.status_code = 400
+    id = ctx.params.url["id"]? || next "No id"
+
+    storage = DB.load
+    parent = storage.words.find(&.sections.includes? id) || storage.meanings.find(&.sections.includes? id) || next "Orphan"
+    section = storage.sections.find(&.id.== id) || next "Invalid id"
+
+    parent.as(DB::Sectionable).sections.delete(id) || next "Failed to delete from parent"
+    storage.sections.delete(section) || next "Failed to delete from storage"
+
+    DB.save storage
+
+    ctx.response.content_type = "application/json"
+    ctx.response.status_code = 200
+    "{}"
+  end
+
   post "/api/v0/meaning" do |ctx|
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
