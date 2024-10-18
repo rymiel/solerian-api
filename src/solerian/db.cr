@@ -72,6 +72,10 @@ module Solerian::DB
 
     def initialize(@words, @meanings, @sections)
     end
+
+    def find_sectionable(&pred : DB::Sectionable -> Bool) : DB::Sectionable?
+      (@words.find(&pred) || @meanings.find(&pred)).as DB::Sectionable?
+    end
   end
 
   STORAGE = Path["./new.db.json"]

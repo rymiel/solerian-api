@@ -98,9 +98,9 @@ module Solerian
 
     storage = DB.load
     if to_id != nil
-      to = storage.words.find(&.id.== to_id) || storage.meanings.find(&.id.== to_id) || next "Invalid to hash"
+      to = storage.find_sectionable(&.id.== to_id) || next "Invalid to hash"
       section = DB::Section.new(title: title, content: content)
-      to.as(DB::Sectionable).sections << section.id
+      to.sections << section.id
       to.touch!
       storage.sections << section
     elsif as_id != nil
@@ -124,10 +124,10 @@ module Solerian
     id = ctx.params.url["id"]? || next "No id"
 
     storage = DB.load
-    parent = storage.words.find(&.sections.includes? id) || storage.meanings.find(&.sections.includes? id) || next "Orphan"
+    parent = storage.find_sectionable(&.sections.includes? id) || next "Orphan"
     section = storage.sections.find(&.id.== id) || next "Invalid id"
 
-    parent.as(DB::Sectionable).sections.delete(id) || next "Failed to delete from parent"
+    parent.sections.delete(id) || next "Failed to delete from parent"
     storage.sections.delete(section) || next "Failed to delete from storage"
 
     DB.save storage
