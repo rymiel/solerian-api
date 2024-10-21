@@ -62,16 +62,7 @@ module Solerian
     VERSION
   end
 
-  # get "/api/v0/raw" do |ctx|
-  #   cors ctx
-  #   ctx.response.content_type = "application/json"
-  #   DB::Old::RawEntry.all.to_a.to_json
-  # end
-
   get "/api/v0/new" do |ctx|
-    # ctx.response.content_type = "application/json"
-    # DB.copy ctx.response.output
-
     if etag = DB.etag
       ctx.response.headers["ETag"] = etag
       if ctx.request.headers["If-None-Match"]? == etag

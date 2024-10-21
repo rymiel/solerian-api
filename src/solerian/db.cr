@@ -84,12 +84,7 @@ module Solerian::DB
     File.open(STORAGE, "w") do |f|
       DB.etag = Time.utc
       all.to_json f
-    end
-  end
-
-  def self.copy(io : IO)
-    File.open(STORAGE, "r") do |f|
-      IO.copy f, io
+      Log.warn { "Wrote storage: #{f.size.humanize_bytes}" }
     end
   end
 
@@ -111,6 +106,7 @@ module Solerian::DB
 
   def self.etag=(time : Time) : Nil
     @@etag = "sld-" + time.to_s("%Y-%-m-%-d-%H-%M-%S-%L") + "/#{Solerian::VERSION}"
+    Log.notice { "New etag: #{@@etag}" }
   end
 
   # def self.migrate
