@@ -5,7 +5,7 @@ require "json"
 module Solerian::DB
   Log = ::Log.for self
 
-  class_property etag : String? = nil
+  class_getter etag : String? = nil
 
   abstract class Base
     macro inherited
@@ -69,8 +69,9 @@ module Solerian::DB
     property words : Array(Entry)
     property meanings : Array(Meaning)
     property sections : Array(Section)
+    property etag : String?
 
-    def initialize(@words, @meanings, @sections)
+    def initialize(@words, @meanings, @sections, @etag)
     end
 
     def find_sectionable(&pred : DB::Sectionable -> Bool) : DB::Sectionable?
@@ -83,6 +84,7 @@ module Solerian::DB
   def self.save(all : Storage)
     File.open(STORAGE, "w") do |f|
       DB.etag = Time.utc
+      all.etag = DB.etag
       all.to_json f
       Log.warn { "Wrote storage: #{f.size.humanize_bytes}" }
     end
