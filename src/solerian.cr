@@ -23,12 +23,16 @@ module Solerian
 
   class CorsHandler
     include HTTP::Handler
+    ORIGINS = ENV["CORS_ORIGINS"].split(",")
 
     def call(context : HTTP::Server::Context)
-      context.response.headers["Access-Control-Allow-Origin"] = ENV["CORS_ORIGIN"]
-      context.response.headers["Access-Control-Allow-Headers"] = "Authorization, X-Solerian-Client"
-      context.response.headers["Access-Control-Allow-Credentials"] = "true"
-      context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+      origin = context.request.headers["Origin"]?
+      if origin && origin.in? ORIGINS
+        context.response.headers["Access-Control-Allow-Origin"] = origin
+        context.response.headers["Access-Control-Allow-Headers"] = "Authorization, X-Solerian-Client"
+        context.response.headers["Access-Control-Allow-Credentials"] = "true"
+        context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+      end
       call_next context
     end
   end
