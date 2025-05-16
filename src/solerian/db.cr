@@ -5,7 +5,7 @@ require "json"
 module Solerian::DB
   Log = ::Log.for self
 
-  class_getter etag : String? = nil
+  class_getter etags = Hash(String, String).new
 
   abstract class Base
     macro inherited
@@ -77,37 +77,46 @@ module Solerian::DB
     def find_sectionable(&pred : DB::Sectionable -> Bool) : DB::Sectionable?
       (@words.find(&pred) || @meanings.find(&pred)).as DB::Sectionable?
     end
-  end
 
-  STORAGE = Path["./new.db.json"]
-
-  def self.save(all : Storage)
-    File.open(STORAGE, "w") do |f|
-      DB.etag = Time.utc
-      all.etag = DB.etag
-      all.to_json f
-      Log.warn { "Wrote storage: #{f.size.humanize_bytes}" }
+    def self.empty
+      self.new([] of Entry, [] of Meaning, [] of Section, nil)
     end
   end
 
-  def self.load : Storage
-    File.open(STORAGE, "r") do |f|
+  STORES = ENV["DB_STORES"].split(",")
+
+  def self.save(store : String, all : Storage)
+    File.open(DB.store(store), "w") do |f|
+      all.etag = DB.update_etag(store)
+      all.to_json f
+      Log.for(store).warn { "Wrote storage: #{f.size.humanize_bytes}" }
+    end
+  end
+
+  def self.load(store : String) : Storage
+    File.open(DB.store(store), "r") do |f|
       Storage.from_json f
     end
   end
 
-  def self.has_db? : Bool
-    File.exists? STORAGE
+  def self.has_db?(store : String) : Bool
+    File.exists? DB.store(store)
   end
 
-  def self.head! : Nil
-    File.open(STORAGE, "r") do |f|
-      DB.etag = f.info.modification_time
+  def self.head!(store : String) : Nil
+    File.open(DB.store(store), "r") do |f|
+      DB.update_etag(store, f.info.modification_time)
     end
   end
 
-  def self.etag=(time : Time) : Nil
-    @@etag = "sld-" + time.to_s("%Y-%-m-%-d-%H-%M-%S-%L") + "/#{Solerian::VERSION}"
-    Log.notice { "New etag: #{@@etag}" }
+  def self.update_etag(store : String, time = Time.utc) : String
+    etag = "sld-" + time.to_s("%Y-%-m-%-d-%H-%M-%S-%L") + "/#{Solerian::VERSION}"
+    @@etags[store] = etag
+    Log.for(store).notice { "New etag: #{etag}" }
+    etag
+  end
+
+  def self.store(name)
+    "./#{name}.db.json"
   end
 end

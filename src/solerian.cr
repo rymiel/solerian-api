@@ -66,8 +66,11 @@ module Solerian
     VERSION
   end
 
-  get "/api/v0/new" do |ctx|
-    if etag = DB.etag
+  get "/api/v1/:store/data" do |ctx|
+    ctx.response.status = HTTP::Status::BAD_REQUEST
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
+    if etag = DB.etags[store]?
       ctx.response.headers["ETag"] = etag
       if ctx.request.headers["If-None-Match"]? == etag
         ctx.response.status = HTTP::Status::NOT_MODIFIED
@@ -76,14 +79,17 @@ module Solerian
       end
     end
 
-    send_file ctx, DB::STORAGE.to_s, "application/json"
+    ctx.response.status = :ok
+    send_file ctx, DB.store(store), "application/json"
     ctx.response.close
     nil
   end
 
-  post "/api/v0/section" do |ctx|
+  post "/api/v1/:store/section" do |ctx|
     next unless Auth.assert_auth ctx
-    ctx.response.status_code = 400
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
     to_id = ctx.params.body["to"]?
     as_id = ctx.params.body["as"]?
     title = ctx.params.body["title"]? || next "No title"
@@ -91,7 +97,7 @@ module Solerian
 
     next "One of to or as has to be provided" if to_id.nil? && as_id.nil?
 
-    storage = DB.load
+    storage = DB.load store
     if to_id != nil
       to = storage.find_sectionable(&.id.== to_id) || next "Invalid to hash"
       section = DB::Section.new(title: title, content: content)
@@ -106,42 +112,46 @@ module Solerian
     else
       raise "can't happen"
     end
-    DB.save storage
+    DB.save store, storage
 
     ctx.response.content_type = "application/json"
-    ctx.response.status_code = 200
+    ctx.response.status = :ok
     "{}"
   end
 
-  delete "/api/v0/section/:id" do |ctx|
+  delete "/api/v1/:store/section/:id" do |ctx|
     next unless Auth.assert_auth ctx
-    ctx.response.status_code = 400
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
     id = ctx.params.url["id"]? || next "No id"
 
-    storage = DB.load
+    storage = DB.load store
     parent = storage.find_sectionable(&.sections.includes? id) || next "Orphan"
     section = storage.sections.find(&.id.== id) || next "Invalid id"
 
     parent.sections.delete(id) || next "Failed to delete from parent"
     storage.sections.delete(section) || next "Failed to delete from storage"
 
-    DB.save storage
+    DB.save store, storage
 
     ctx.response.content_type = "application/json"
-    ctx.response.status_code = 200
+    ctx.response.status = :ok
     "{}"
   end
 
-  post "/api/v0/meaning" do |ctx|
+  post "/api/v1/:store/meaning" do |ctx|
     next unless Auth.assert_auth ctx
-    ctx.response.status_code = 400
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
     to_id = ctx.params.body["to"]?
     as_id = ctx.params.body["as"]?
     eng = ctx.params.body["eng"]? || next "No eng"
 
     next "One of to or as has to be provided" if to_id.nil? && as_id.nil?
 
-    storage = DB.load
+    storage = DB.load store
     if to_id != nil
       to = storage.words.find(&.id.== to_id) || next "Invalid to hash"
       meaning = DB::Meaning.new(eng: eng, sections: [] of String)
@@ -155,16 +165,18 @@ module Solerian
     else
       raise "can't happen"
     end
-    DB.save storage
+    DB.save store, storage
 
     ctx.response.content_type = "application/json"
-    ctx.response.status_code = 200
+    ctx.response.status = :ok
     "{}"
   end
 
-  post "/api/v0/entry" do |ctx|
+  post "/api/v1/:store/entry" do |ctx|
     next unless Auth.assert_auth ctx
-    ctx.response.status_code = 400
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
     as_id = ctx.params.body["as"]?
     sol = ctx.params.body["sol"]? || next "No sol"
     extra = ctx.params.body["extra"]? || next "No extra"
@@ -173,7 +185,7 @@ module Solerian
     ex = ctx.params.body["ex"]?
     response = nil
 
-    storage = DB.load
+    storage = DB.load store
     if as_id.nil?
       meanings = [] of String
       if eng
@@ -194,14 +206,14 @@ module Solerian
       as_.tag = tag
       as_.touch!
     end
-    DB.save storage
+    DB.save store, storage
 
     ctx.response.content_type = "application/json"
-    ctx.response.status_code = 200
+    ctx.response.status = :ok
     response.to_json
   end
 
-  post "/api/v0/validate" do |ctx|
+  post "/api/v1/solerian/validate" do |ctx|
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
 
@@ -241,11 +253,13 @@ Log.setup do |c|
   c.bind "granite", :info, backend
 end
 
-if Solerian::DB.has_db?
-  Solerian::DB.head!
-else
-  # Solerian::DB.migrate
-  raise "No db"
+Solerian::DB::STORES.each do |store|
+  if Solerian::DB.has_db? store
+    Solerian::DB.head! store
+  else
+    Log.warn { "Initializing new DB (#{store})" }
+    Solerian::DB.save store, Solerian::DB::Storage.empty
+  end
 end
 
 Kemal.run
