@@ -62,7 +62,7 @@ module Solerian
     end
   end
 
-  get "/api/v0/version" do |ctx|
+  get "/version" do |ctx|
     VERSION
   end
 
