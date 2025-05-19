@@ -70,6 +70,7 @@ module Solerian::DB
     property meanings : Array(Meaning)
     property sections : Array(Section)
     property etag : String?
+    property config : Hash(String, JSON::Any) = {} of String => JSON::Any
 
     def initialize(@words, @meanings, @sections, @etag)
     end

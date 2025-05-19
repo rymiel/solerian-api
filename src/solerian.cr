@@ -213,6 +213,23 @@ module Solerian
     response.to_json
   end
 
+  post "/api/v1/:store/config/:key" do |ctx|
+    next unless Auth.assert_auth ctx
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
+    key = ctx.params.url["key"]? || next "No key"
+    content = JSON.parse(ctx.request.body || next "No content") rescue next "Invalid content"
+
+    storage = DB.load store
+    storage.config[key] = content
+    DB.save store, storage
+
+    ctx.response.content_type = "application/json"
+    ctx.response.status = :ok
+    "{}"
+  end
+
   post "/api/v1/solerian/validate" do |ctx|
     next unless Auth.assert_auth ctx
     ctx.response.status_code = 400
