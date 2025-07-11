@@ -32,9 +32,10 @@ module Solerian::DB
     property extra : String
     property tag : String?
     property ex : String?
+    property gloss : String?
     getter meanings : Array(String)
 
-    def initialize(*, @sol, @extra, @tag, @ex, @meanings, @sections, created_at : Time? = nil, updated_at : Time? = nil, hash : String? = nil)
+    def initialize(*, @sol, @extra, @tag, @ex, @gloss, @meanings, @sections, created_at : Time? = nil, updated_at : Time? = nil, hash : String? = nil)
       @created_at = created_at || Time.utc
       @updated_at = updated_at || Time.utc
       @id = hash || Nanoid.generate(size: 10)

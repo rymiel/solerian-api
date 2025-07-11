@@ -183,6 +183,7 @@ module Solerian
     tag = ctx.params.body["tag"]?
     eng = ctx.params.body["eng"]?
     ex = ctx.params.body["ex"]?
+    gloss = ctx.params.body["gloss"]?
     response = nil
 
     storage = DB.load store
@@ -195,7 +196,7 @@ module Solerian
           meanings << meaning.id
         end
       end
-      entry = DB::Entry.new(sol: sol, extra: extra, tag: tag, ex: ex, meanings: meanings, sections: [] of String)
+      entry = DB::Entry.new(sol: sol, extra: extra, tag: tag, ex: ex, gloss: gloss, meanings: meanings, sections: [] of String)
       storage.words << entry
       response = entry.id
     else
@@ -204,6 +205,8 @@ module Solerian
       as_.sol = sol
       as_.extra = extra
       as_.tag = tag
+      as_.ex = ex
+      as_.gloss = gloss
       as_.touch!
     end
     DB.save store, storage
