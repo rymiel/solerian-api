@@ -184,8 +184,8 @@ module Solerian
     meaning = storage.meanings.find(&.id.== id) || next "Invalid id"
 
     meaning.sections.each do |cid|
-      child = storage.sections.find(&.id.== id) || next "Missing child #{cid}"
-      storage.sections.delete(child) || next "Failed to delete child #{cid}"
+      child = storage.sections.find(&.id.== cid) || raise "Missing child #{cid}"
+      storage.sections.delete(child) || raise "Failed to delete child #{cid}"
     end
 
     parent.meanings.delete(id) || next "Failed to delete from parent"
@@ -240,6 +240,41 @@ module Solerian
     ctx.response.content_type = "application/json"
     ctx.response.status = :ok
     response.to_json
+  end
+
+  delete "/api/v1/:store/entry/:id" do |ctx|
+    next unless Auth.assert_auth ctx
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
+    id = ctx.params.url["id"]? || next "No id"
+
+    storage = DB.load store
+    entry = storage.words.find(&.id.== id) || next "Invalid id"
+
+    entry.sections.each do |cid|
+      child = storage.sections.find(&.id.== cid) || raise "Missing entry child #{cid}"
+      storage.sections.delete(child) || raise "Failed to delete entry child #{cid}"
+    end
+
+    entry.meanings.map do |mid|
+      meaning = storage.meanings.find(&.id.== mid) || raise "Missing meaning #{mid}"
+
+      meaning.sections.each do |cid|
+        child = storage.sections.find(&.id.== cid) || raise "Missing meaning child #{cid}"
+        storage.sections.delete(child) || raise "Failed to delete meaning child #{cid}"
+      end
+
+      storage.meanings.delete(meaning) || raise "Failed to delete meaning #{mid}"
+    end
+
+    storage.words.delete(entry) || next "Failed to delete from storage"
+
+    DB.save store, storage
+
+    ctx.response.content_type = "application/json"
+    ctx.response.status = :ok
+    "{}"
   end
 
   post "/api/v1/:store/config/:key" do |ctx|
