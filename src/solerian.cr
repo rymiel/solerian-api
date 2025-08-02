@@ -172,6 +172,32 @@ module Solerian
     "{}"
   end
 
+  delete "/api/v1/:store/meaning/:id" do |ctx|
+    next unless Auth.assert_auth ctx
+    ctx.response.status = :bad_request
+    store = ctx.params.url["store"]? || next "No store"
+    next "Invalid store" unless store.in? DB::STORES
+    id = ctx.params.url["id"]? || next "No id"
+
+    storage = DB.load store
+    parent = storage.words.find(&.meanings.includes? id) || next "Orphan"
+    meaning = storage.meanings.find(&.id.== id) || next "Invalid id"
+
+    meaning.sections.each do |cid|
+      child = storage.sections.find(&.id.== id) || next "Missing child #{cid}"
+      storage.sections.delete(child) || next "Failed to delete child #{cid}"
+    end
+
+    parent.meanings.delete(id) || next "Failed to delete from parent"
+    storage.meanings.delete(meaning) || next "Failed to delete from storage"
+
+    DB.save store, storage
+
+    ctx.response.content_type = "application/json"
+    ctx.response.status = :ok
+    "{}"
+  end
+
   post "/api/v1/:store/entry" do |ctx|
     next unless Auth.assert_auth ctx
     ctx.response.status = :bad_request
