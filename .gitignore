@@ -4,7 +4,7 @@ sess/
 bin/
 
 data.db
-*.db.json
+*.db*.json
 
 .env.yaml
 dev.env.yaml
