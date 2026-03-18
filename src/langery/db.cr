@@ -59,7 +59,7 @@ module Langery::DB
   end
 
   def self.store?(name : String) : Store?
-    @@stores[name]
+    @@stores[name]?
   end
 
   abstract class Base
