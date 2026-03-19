@@ -1,4 +1,3 @@
-require "./db"
 require "json"
 require "crypto/bcrypt/password"
 

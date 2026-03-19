@@ -1,5 +1,5 @@
 name: solerian-api
-version: 0.3.0
+version: 0.4.0
 
 authors:
   - Emilia Kond <emilia@rymiel.space>
@@ -9,8 +9,6 @@ targets:
     main: src/solerian.cr
 
 dependencies:
-  nanoid:
-    github: mamantoha/nanoid.cr
   envy:
     github: GrottoPress/envy
   kemal:
