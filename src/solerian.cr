@@ -247,6 +247,13 @@ module Solerian
     ctx.response.status_code = 200
     fail.to_json
   end
+
+  post "/api/v2/:store/validate" do |ctx|
+    next unless Auth.assert_auth ctx
+    ctx.response.content_type = "application/json"
+    ctx.response.status_code = 200
+    "[]"
+  end
 end
 
 Log.setup do |c|
